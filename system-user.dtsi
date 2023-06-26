@@ -1,0 +1,117 @@
+/include/ "system-conf.dtsi"
+
+#define GPIO_ACTIVE_HIGH 0
+#define GPIO_ACTIVE_LOW  1
+
+/ {
+    model = "Zynq Eco Development Board"; 
+    compatible = "zynq7010,zynq-7020","xlnx,zynq-7000"; 
+
+	chosen{
+		bootargs = "console=ttyPS0,115200 earlyprintk root=/dev/nfs nfsroot=192.168.5.195:/home/sunlee/zynq-rootfs,tcp ip=dhcp rw uio_pdrv_genirq.of_id=generic-uio";
+		stdout-path = "serial0:115200n8";
+	};
+
+    usb_phy0: phy0 {
+    		compatible = "ulpi-phy";
+    		#phy-cells = <0>;
+    		reg = <0xe0002000 0x1000>;
+    		view-port = <0x170>;
+    		drv-vbus;
+	};
+
+    leds {
+		compatible = "gpio-leds";
+
+		gpio-led3 {
+			label = "led3";
+			gpios = <&gpio0 56 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		gpio-led4 {
+			label = "led4";
+			gpios = <&gpio0 57 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+};
+
+&usb0{
+	status = "okay";
+    dr_mode = "host";
+    usb-phy = <&usb_phy0>;
+};
+
+&spi0 {
+    st7789v@0 {
+        status = "okay";
+        compatible = "sitronix,st7789v";
+       	reg = <0>;
+       	spi-max-frequency =<32000000>;        //SPI时钟32M
+       	rotate =<270>;
+       	spi-cpol;
+       	spi-cpha;
+       	rgb;                           //颜色格式RGB
+       	fps =<30>;                      //刷新30帧率
+       	buswidth =<8>;                   //总线宽度8
+        reset-gpios=<&gpio0 54 GPIO_ACTIVE_HIGH>;   //EMIO 55
+       	dc-gpios  =<&gpio0 55 GPIO_ACTIVE_LOW>;   //EMIO 54
+	    width = <240>;
+        height= <320>;
+       	debug =<0>;                     //不开启调试
+        };
+};
+
+&i2c0 {
+	status = "okay";
+};
+
+&amba_pl{
+	uio@0{
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "generic-uio";
+		status = "okay";
+		interrupt-controller;
+		interrupt-parent = <&intc>;
+		interrupts = <0 31 1>;
+		reg = <0x40000000 0x2000>;
+	};
+
+	/* AXI-DMA */
+	axidma_chrdev: axidma_chrdev@0 {
+		compatible = "xlnx,axidma-chrdev";
+		dmas = <&axi_dma_0 0 &axi_dma_0 1>;
+		dma-names = "tx_channel", "rx_channel";
+	};
+
+	axi_dma_0: dma@40400000 {
+		#dma-cells = <1>;
+		clock-names = "s_axi_lite_aclk", "m_axi_sg_aclk", "m_axi_mm2s_aclk", "m_axi_s2mm_aclk";
+		clocks = <&clkc 15>, <&clkc 15>, <&clkc 15>, <&clkc 15>;
+		compatible = "xlnx,axi-dma-1.00.a";
+		interrupt-names = "mm2s_introut", "s2mm_introut";
+		interrupt-parent = <&intc>;
+		interrupts = <0 29 4 0 30 4>;
+		reg = <0x40400000 0x10000>;
+		xlnx,addrwidth = <0x20>;
+		xlnx,sg-length-width = <0x1a>;
+		dma-channel@40400000 {
+			compatible = "xlnx,axi-dma-mm2s-channel";
+			dma-channels = <0x1>;
+			interrupt-parent = <&intc>;
+			interrupts = <0 29 4>;
+			xlnx,datawidth = <0x20>;
+			xlnx,device-id = <0x0>;
+		};
+		dma-channel@40400030 {
+			compatible = "xlnx,axi-dma-s2mm-channel";
+			dma-channels = <0x1>;
+			interrupt-parent = <&intc>;
+			interrupts = <0 30 4>;
+			xlnx,datawidth = <0x20>;
+			xlnx,device-id = <0x1>;
+		};
+	};
+};
