@@ -1,6 +1,6 @@
 #/bin/bash
 #set -vx
-device="system"
+device="e2000q-edu-board"
 src_dts=$device.dts
 tmp_dts=$device.tmp.dts
 dst_dtb=$device.dtb
